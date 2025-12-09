@@ -12,6 +12,13 @@ sudo make install  # installs to /usr/local/bin/trim_tail
 
 `make clean` removes the binary and generated `version.h`. `make uninstall` removes the installed binary.
 
+### Ubuntu/Debian prerequisites
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential
+```
+
 ## Versioning
 
 `VERSION` holds the release string (currently `0.1.0`). Running `make` regenerates `version.h` from that file so `trim_tail --version` (or `-v`/`-V`) prints the same number.
