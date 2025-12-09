@@ -20,6 +20,12 @@ if [[ -z "$version" ]]; then
   exit 1
 fi
 
+current="$(cat VERSION 2>/dev/null || true)"
+if [[ "$current" == "$version" ]]; then
+  echo "Refusing: VERSION already $version. Choose a new version." >&2
+  exit 1
+fi
+
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "Refusing: git tree is dirty." >&2
   exit 1
