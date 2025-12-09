@@ -1,3 +1,8 @@
+/* 
+ * Fault injection shim for trim_tail tests.
+ * Copyright 2025 Yurii Muratov
+ * Licensed under the Apache License, Version 2.0 (see LICENSE)
+ */
 #define _GNU_SOURCE
 #include <dlfcn.h>
 #include <errno.h>
@@ -5,8 +10,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// Fault injection shim for tests: inject EINTR into pread/pwrite and force a
-// single short write to exercise retry loops.
+// Inject EINTR into pread/pwrite and force a single short write to exercise
+// retry loops.
 
 static ssize_t (*real_pread_fn)(int, void *, size_t, off_t);
 static ssize_t (*real_pwrite_fn)(int, const void *, size_t, off_t);

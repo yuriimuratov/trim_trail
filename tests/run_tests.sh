@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# trim_tail tests
+# Copyright 2025 Yurii Muratov
+# Licensed under the Apache License, Version 2.0 (see LICENSE)
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)

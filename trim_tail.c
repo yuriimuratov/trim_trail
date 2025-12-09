@@ -1,4 +1,8 @@
-// trim_tail: rewrite a log file in place, keeping only the last N lines
+/*
+ * trim_tail: rewrite a log file in place, keeping only the last N lines.
+ * Copyright 2025 Yurii Muratov
+ * Licensed under the Apache License, Version 2.0 (see LICENSE)
+ */
 #define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
@@ -86,6 +90,8 @@ static void print_usage(const char *prog) {
 
 static int print_version(void) {
     printf("trim_tail %s\n", VERSION);
+    printf("Copyright 2025 Yurii Muratov\n");
+    printf("License Apache-2.0 (see LICENSE)\n");
     return 0;
 }
 
