@@ -51,6 +51,18 @@ make test
 
 Update `VERSION`, then run `make` so the generated `version.h` embeds the new number.
 
+## Release flow
+
+- Ensure clean git tree.
+- Run `NEW_VERSION=x.y.z ./scripts/release.sh` (or pass version as first arg). This:
+  - writes `VERSION`
+  - rebuilds with `VERSION_OVERRIDE` to avoid hash suffix
+  - runs tests
+  - commits `Release vX.Y.Z`
+  - tags `vX.Y.Z`
+- Push manually if desired:  
+  `git push && git push --tags`
+
 ## License
 
 Apache-2.0 © 2025 Yurii Muratov. See `LICENSE`.
