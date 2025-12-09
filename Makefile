@@ -18,7 +18,7 @@ version.h: VERSION FORCE
 	@base="$(VERSION_TXT)"; \
 	if [ -n "$$VERSION_OVERRIDE" ]; then \
 		ver="$$VERSION_OVERRIDE"; \
-	elif git -C "$(PWD)" describe --tags --exact-match --quiet >/dev/null 2>&1; then \
+	elif git -C "$(PWD)" describe --tags --exact-match >/dev/null 2>&1; then \
 		ver="$$base"; \
 	else \
 		hash=$$(git -C "$(PWD)" rev-parse --short HEAD 2>/dev/null || true); \
