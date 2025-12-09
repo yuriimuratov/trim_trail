@@ -35,7 +35,7 @@ echo "$version" > VERSION
 # Build with override to avoid hash suffix during release.
 VERSION_OVERRIDE="$version" make clean all test
 
-git add VERSION version.h
+git add VERSION
 git commit -m "Release v$version"
 git tag -a "v$version" -m "v$version"
 
