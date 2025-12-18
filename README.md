@@ -26,15 +26,19 @@ sudo apt-get install -y build-essential
 ## Usage
 
 ```bash
-trim_tail LOGFILE N_LINES
+trim_tail LOGFILE N_LINES        # keep last N lines (default mode)
+trim_tail LOGFILE --lines N      # keep last N lines (explicit)
+trim_tail LOGFILE --bytes N      # keep last N bytes (whole lines only)
 trim_tail --version
 ```
 
-- `N_LINES` must be an integer; values below zero are treated as zero.
+- `N_LINES` can be positional or passed via `--lines/-l`. `--bytes/-b` switches to byte mode; lines and bytes are mutually exclusive.
+- `--bytes` accepts optional SI suffixes `k/m/g` (1000-based). If `N` is greater than or equal to the file size, the file is left unchanged.
+- `N < 0` is treated as `0` (truncate to empty).
 - An exclusive `flock` is held for the duration of the rewrite to avoid concurrent truncation.
-- For `N_LINES == 0`, the file is truncated to zero length and `fsync`'d.
-- Otherwise the tool scans from the end in 64 KiB blocks to find the starting offset of the last `N_LINES`, copies that tail forward in 128 KiB chunks using the same file descriptor, then `ftruncate` + `fsync`.
-- Files without a trailing newline keep their final partial line counted as one.
+- For `--lines 0` or `--bytes 0`, the file is truncated to zero length and `fsync`'d.
+- For `--lines`: scan from the end in 64 KiB blocks to find the starting offset of the last `N` lines, copy forward in 128 KiB chunks, then `ftruncate` + `fsync`. Files without a trailing newline keep their final partial line counted as one.
+- For `--bytes`: start from `size - N` and back up to the previous newline (or start-of-file) to avoid cutting a line; then copy/truncate as above.
 - Memory use is bounded by the chunk sizes; the approach works on large files (multi‑GB) because only the tail is buffered.
 
 Errors are printed to stderr and a non-zero status is returned.
