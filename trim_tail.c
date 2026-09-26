@@ -88,12 +88,12 @@ static off_t find_tail_start_bytes(int fd, off_t size, off_t keep_bytes) {
     return 0;
 }
 
-static int copy_tail(int fd, off_t src_off, off_t size) {
+/* Copy [src_off, end) to [dst_off, ...). */
+static int copy_range(int fd, off_t src_off, off_t end, off_t *dst_off) {
     char buf[COPY_CHUNK];
-    off_t dst_off = 0;
 
-    while (src_off < size) {
-        size_t to_read = (size - src_off > (off_t)sizeof(buf)) ? sizeof(buf) : (size_t)(size - src_off);
+    while (src_off < end) {
+        size_t to_read = (end - src_off > (off_t)sizeof(buf)) ? sizeof(buf) : (size_t)(end - src_off);
         ssize_t r;
         do {
             r = pread(fd, buf, to_read, src_off);
@@ -106,7 +106,7 @@ static int copy_tail(int fd, off_t src_off, off_t size) {
         while (written < read_total) {
             ssize_t w;
             do {
-                w = pwrite(fd, buf + written, read_total - written, dst_off + written);
+                w = pwrite(fd, buf + written, read_total - written, *dst_off + written);
             } while (w < 0 && errno == EINTR);
             if (w < 0) return -1;
             if (w == 0) { errno = EIO; return -1; }
@@ -114,7 +114,35 @@ static int copy_tail(int fd, off_t src_off, off_t size) {
         }
 
         src_off += (off_t)read_total;
-        dst_off += (off_t)read_total;
+        *dst_off += (off_t)read_total;
+    }
+
+    return 0;
+}
+
+/*
+ * Shift [src_off, EOF) to the start of the file and truncate after it.
+ *
+ * A live writer (O_APPEND) keeps appending while the tail is copied. Copying only up to the size
+ * seen at the start and truncating there would cut everything written during the copy. So after
+ * each pass the size is read again and whatever arrived meanwhile is copied too, until a pass finds
+ * nothing new; only then the file is truncated. What remains is the window between the last fstat
+ * and ftruncate - microseconds instead of the whole copy.
+ */
+#define MAX_CATCHUP_PASSES 64
+
+static int copy_tail(int fd, off_t src_off, off_t size) {
+    off_t dst_off = 0;
+    off_t end = size;
+
+    for (int pass = 0; ; pass++) {
+        if (copy_range(fd, src_off, end, &dst_off) < 0) return -1;
+        src_off = end;
+
+        struct stat st;
+        if (fstat(fd, &st) < 0) return -1;
+        if (st.st_size <= end || pass >= MAX_CATCHUP_PASSES) break;
+        end = st.st_size;
     }
 
     return ftruncate(fd, dst_off);

@@ -39,6 +39,7 @@ trim_tail --version
 - For `--lines 0` or `--bytes 0`, the file is truncated to zero length and `fsync`'d.
 - For `--lines`: scan from the end in 64 KiB blocks to find the starting offset of the last `N` lines, copy forward in 128 KiB chunks, then `ftruncate` + `fsync`. Files without a trailing newline keep their final partial line counted as one.
 - For `--bytes`: start from `size - N` and back up to the previous newline (or start-of-file) to avoid cutting a line; then copy/truncate as above.
+- Live writers: a process appending with `O_APPEND` keeps writing while the tail is copied. After each copy pass the size is re-read and whatever arrived meanwhile is copied too, until a pass finds nothing new (at most 64 passes); only then the file is truncated. Lines written during the copy therefore survive — only the microsecond window between the last size check and `ftruncate` can lose a write.
 - Memory use is bounded by the chunk sizes; the approach works on large files (multi‑GB) because only the tail is buffered.
 
 Errors are printed to stderr and a non-zero status is returned.

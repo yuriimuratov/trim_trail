@@ -177,6 +177,37 @@ case_error_with_both_flags() {
   fi
 }
 
+# A live O_APPEND writer keeps appending while the tail is copied. Lines written during the copy
+# must survive: only the microsecond window between the last size check and ftruncate may lose any.
+case_live_writer_keeps_lines_written_during_copy() {
+  command -v python3 >/dev/null || return 0
+  local f="$tmpdir/live.log"
+  python3 - "$f" <<'PY2'
+import sys
+with open(sys.argv[1], 'w') as fh:
+    pad = 'x' * 200
+    for i in range(1_000_000):
+        fh.write(f'{i:09d} {pad}\n')
+PY2
+  python3 - "$f" <<'PY2' &
+import os, sys, time
+fd = os.open(sys.argv[1], os.O_WRONLY | os.O_APPEND)
+i, end, pad = 1_000_000, time.time() + 1.5, 'y' * 200
+while time.time() < end:
+    os.write(fd, f'{i:09d} {pad}\n'.encode()); i += 1
+PY2
+  local writer=$!
+  sleep 0.3
+  "$BIN" "$f" --bytes 150000000
+  wait "$writer"
+  python3 - "$f" <<'PY2'
+import sys
+nums = [int(l[:9]) for l in open(sys.argv[1])]
+lost = sum(b - a - 1 for a, b in zip(nums, nums[1:]) if b != a + 1)
+sys.exit(0 if lost <= 100 else 1)
+PY2
+}
+
 run_case "keep zero" case_keep_zero
 run_case "keep 3 of 5" case_keep_three_of_five
 run_case "keep > size" case_keep_more_than_exists
@@ -191,6 +222,7 @@ run_case "bytes suffix k on real file" case_bytes_suffix_k_real_file
 run_case "bytes suffix m on real file" case_bytes_suffix_m_real_file
 run_case "bytes suffix g no-op on real file" case_bytes_suffix_g_noop_real_file
 run_case "error with both flags" case_error_with_both_flags
+run_case "live writer keeps lines written during copy" case_live_writer_keeps_lines_written_during_copy
 
 if (( fail > 0 )); then
   echo "Failed: $fail" >&2
